@@ -13,6 +13,7 @@ const {
   checkout,
   getCustomer,
   deleteCartItem,
+  editAGenre,
 } = require("../controller/movie-controller");
 const checkAuth = require("../middleware/auth");
 const { fileUpload } = require("../middleware/file-upload");
@@ -23,15 +24,17 @@ router.get("/genre", getGenres);
 router.get("/:mid", getMoviesById);
 router.get("/user/:uid", getMoviesByCreator);
 
+//Followring routes is protected
 router.use(checkAuth);
 router.post("/", fileUpload.single("image"), addAMovie);
-router.get("/cart/getCart", getCart);
-router.post("/genre", createAGenre);
 router.post("/cart", postCartItem);
+router.get("/cart/getCart", getCart);
 router.delete("/cart/:cartId", deleteCartItem);
+router.post("/genre", createAGenre);
+router.post("/genre/:gId", editAGenre);
 router.post("/checkout", checkout);
-router.post("/customer", getCustomer);
-router.patch("/:mid", editAMovie);
+router.get("/customer/order", getCustomer);
+router.post("/edit", fileUpload.single("image"), editAMovie);
 router.delete("/:mid", deleteAMovie);
 
 module.exports = router;

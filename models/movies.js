@@ -21,7 +21,7 @@ const Movie = db.define("movie", {
     allowNull: false,
   },
   description: {
-    type: Sequelize.STRING,
+    type: Sequelize.DataTypes.TEXT("long"),
     allowNull: false,
   },
   image: {

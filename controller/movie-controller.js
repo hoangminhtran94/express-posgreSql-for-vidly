@@ -3,6 +3,7 @@ const Genre = require("../models/genre");
 const HttpError = require("../models/errors");
 const CartItems = require("../models/cart-item");
 const { response } = require("express");
+const fs = require("fs");
 
 exports.getMovies = async (req, res, next) => {
   try {
@@ -34,9 +35,9 @@ exports.getGenres = async (req, res, next) => {
 exports.addAMovie = async (req, res, next) => {
   const { title, numberInStock, dailyRentalRate, description, genreId } =
     req.body;
-  console.log(req.user);
+  let newMovie;
   try {
-    const newMovie = await req.user.createMovie({
+    newMovie = await req.user.createMovie({
       title,
       numberInStock: +numberInStock,
       dailyRentalRate: +dailyRentalRate,
@@ -44,12 +45,13 @@ exports.addAMovie = async (req, res, next) => {
       genreId,
       image: req.file.path,
     });
-    res.json(newMovie).status(201);
   } catch (error) {
+    console.log(error);
     return next(
       new HttpError("Something went wrong when adding movies to database", 500)
     );
   }
+  res.json(newMovie).status(201);
 };
 
 exports.getMoviesByCreator = async (req, res, next) => {
@@ -74,7 +76,60 @@ exports.getMoviesById = async (req, res, next) => {
   }
 };
 
-exports.editAMovie = async (req, res, next) => {};
+exports.editAMovie = async (req, res, next) => {
+  const { id, title, numberInStock, dailyRentalRate, description, genreId } =
+    req.body;
+  console.log(id);
+  let movie;
+  let file;
+  if (req.file) {
+    file = req.file.path;
+  }
+  try {
+    movie = await Movie.findByPk(id);
+  } catch (error) {
+    return next(
+      new HttpError(
+        "Something went wrong when editeing movie, please try again",
+        500
+      )
+    );
+  }
+  if (!movie) {
+    return next(
+      new HttpError(
+        "Something went wrong when editeing movie, please try again",
+        500
+      )
+    );
+  }
+  if (file) {
+    fs.unlink(movie.image, (error) => {
+      console.log(error);
+    });
+  }
+  if (movie) {
+    movie.title = title;
+    movie.numberInStock = numberInStock;
+    movie.dailyRentalRate = dailyRentalRate;
+    movie.description = description;
+    movie.genreId = genreId;
+    movie.image = file ? file : movie.image;
+  }
+
+  try {
+    await movie.save();
+  } catch (error) {
+    return next(
+      new HttpError(
+        "Something went wrong when editeing movie, please try again",
+        500
+      )
+    );
+  }
+
+  res.json({ message: "success" }).status(201);
+};
 
 exports.deleteAMovie = async (req, res, next) => {
   const movieId = req.params.mid;
@@ -83,8 +138,12 @@ exports.deleteAMovie = async (req, res, next) => {
     const movie = await Movie.findByPk(movieId);
     await movie.destroy();
   } catch (error) {
-    new HttpError("Something went wrong when getting movies to database", 500);
+    return new HttpError(
+      "Something went wrong when getting movies to database",
+      500
+    );
   }
+  res.json({ message: "success" }).status(201);
 };
 
 exports.createAGenre = async (req, res, next) => {
@@ -96,7 +155,28 @@ exports.createAGenre = async (req, res, next) => {
     new HttpError("Something went wrong when creating a genre", 500);
   }
 };
-
+exports.editAGenre = async (req, res, next) => {
+  const gid = req.params.gId;
+  console.log(gid);
+  console.log(req.body);
+  const { name } = req.body;
+  let genre;
+  try {
+    genre = await Genre.findByPk(gid);
+  } catch (error) {
+    return new HttpError("Something went wrong when editing genre", 500);
+  }
+  if (!genre) {
+    return new HttpError("Genre not available", 500);
+  }
+  genre.name = name;
+  try {
+    await genre.save();
+  } catch (error) {
+    return new HttpError("Something went wrong when editing genre", 500);
+  }
+  res.json({ message: "success" }).status(201);
+};
 exports.getCart = async (req, res, next) => {
   const user = req.user;
   let shoppingCart;
@@ -140,7 +220,6 @@ exports.postCartItem = async (req, res, next) => {
   } catch (error) {
     return next(new HttpError("Could not post cart, please try again", 500));
   }
-  console.log(existedMovie);
   if (existedMovie.length > 0) {
     return next(
       new HttpError("Could buy your own product, please try again", 500)
@@ -159,34 +238,46 @@ exports.postCartItem = async (req, res, next) => {
   } catch (error) {
     return next(new HttpError("Could not post cart, please try again", 500));
   }
-  let movie;
+  let currentMovie;
+  try {
+    currentMovie = await Movie.findByPk(movieId);
+  } catch (error) {
+    return next(new HttpError("Could not post cart, please try again", 500));
+  }
+  if (!currentMovie) {
+    return next(new HttpError("Movie not found", 500));
+  }
+
+  let movieInCart;
   if (movies.length > 0) {
     //If movie is in the cart
-    movie = movies[0];
+    movieInCart = movies[0];
   }
+
   let newQuantity = quantity;
-  if (movie) {
+
+  if (movieInCart) {
     //new quantity = old quantity + 1
-    const oldquantity = movie.cartItem.quantity;
+    const oldquantity = movieInCart.cartItem.quantity;
     newQuantity = oldquantity + quantity;
     if (newQuantity === 0) {
-      await movie.cartItem.destroy();
+      await movieInCart.cartItem.destroy();
     } else {
-      await shoppingCart.addMovie(movie, {
+      await shoppingCart.addMovie(movieInCart, {
         through: { quantity: newQuantity },
       });
     }
   }
 
-  if (!movie && newQuantity > 0) {
+  if (!movieInCart && newQuantity > 0) {
     try {
-      movie = await Movie.findByPk(movieId);
+      movieInCart = await Movie.findByPk(movieId);
     } catch (error) {
       return next(new HttpError("Could not post cart, please try again", 500));
     }
 
     try {
-      await shoppingCart.addMovie(movie, {
+      await shoppingCart.addMovie(movieInCart, {
         through: { quantity: newQuantity },
       });
     } catch (error) {
@@ -271,6 +362,7 @@ exports.getOrders = async (req, res, next) => {};
 
 exports.getCustomer = async (req, res, next) => {
   const user = req.user;
+  console.log("getCustomer");
   let movies;
   try {
     movies = await user.getMovies();
@@ -307,6 +399,7 @@ exports.getCustomer = async (req, res, next) => {
 
     return [...Array, ...mappedMovieOrders];
   }, []);
+  console.log(returnObject);
 
   res.json(returnObject).status(201);
 };
