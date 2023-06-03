@@ -4,10 +4,11 @@ const HttpError = require("../models/errors");
 const CartItems = require("../models/cart-item");
 const { response } = require("express");
 const fs = require("fs");
+const { prisma } = require("../utils/prisma");
 
 exports.getMovies = async (req, res, next) => {
   try {
-    const movies = await Movie.findAll();
+    const movies = await prisma.movie.findMany();
     res.json(movies).status(201);
   } catch (error) {
     next(
@@ -20,9 +21,8 @@ exports.getMovies = async (req, res, next) => {
 };
 
 exports.getGenres = async (req, res, next) => {
-  console.log("Hello");
   try {
-    const genres = await Genre.findAll();
+    const genres = await prisma.genre.findMany();
     res.json(genres).status(201);
   } catch (error) {
     new HttpError(
@@ -37,16 +37,18 @@ exports.addAMovie = async (req, res, next) => {
     req.body;
   let newMovie;
   try {
-    newMovie = await req.user.createMovie({
-      title,
-      numberInStock: +numberInStock,
-      dailyRentalRate: +dailyRentalRate,
-      description,
-      genreId,
-      image: req.file.path,
+    newMovie = await prisma.movie.create({
+      data: {
+        title,
+        numberInStock: +numberInStock,
+        dailyRentalRate: +dailyRentalRate,
+        description,
+        genreId,
+        image: req.file.path,
+        owner: { connect: { id: req.user.id } },
+      },
     });
   } catch (error) {
-    console.log(error);
     return next(
       new HttpError("Something went wrong when adding movies to database", 500)
     );
@@ -60,7 +62,7 @@ exports.getMoviesByCreator = async (req, res, next) => {
     new HttpError("Unauthorized user", 403);
   }
   try {
-    const movies = Movie.findAll({ where: { creator: userId } });
+    const movies = prisma.movie.findMany({ where: { ownerId: userId } });
     res.json(movies);
   } catch (error) {
     new HttpError("Something went wrong when getting movies to database", 500);
@@ -69,7 +71,7 @@ exports.getMoviesByCreator = async (req, res, next) => {
 exports.getMoviesById = async (req, res, next) => {
   const mid = req.params.mid;
   try {
-    const movie = await Movie.findByPk(mid);
+    const movie = await prisma.movie.findFirst({ where: { id: mid } });
     res.json(movie).status(201);
   } catch (error) {
     new HttpError("Something went wrong when getting movies to database", 500);
@@ -79,14 +81,14 @@ exports.getMoviesById = async (req, res, next) => {
 exports.editAMovie = async (req, res, next) => {
   const { id, title, numberInStock, dailyRentalRate, description, genreId } =
     req.body;
-  console.log(id);
   let movie;
   let file;
   if (req.file) {
     file = req.file.path;
   }
+
   try {
-    movie = await Movie.findByPk(id);
+    movie = await prisma.movie.findFirst({ where: { id } });
   } catch (error) {
     return next(
       new HttpError(
@@ -108,17 +110,19 @@ exports.editAMovie = async (req, res, next) => {
       console.log(error);
     });
   }
-  if (movie) {
-    movie.title = title;
-    movie.numberInStock = numberInStock;
-    movie.dailyRentalRate = dailyRentalRate;
-    movie.description = description;
-    movie.genreId = genreId;
-    movie.image = file ? file : movie.image;
-  }
 
   try {
-    await movie.save();
+    await prisma.movie.update({
+      where: { id },
+      data: {
+        title,
+        numberInStock: +numberInStock,
+        dailyRentalRate: +dailyRentalRate,
+        description,
+        image: file ? file : movie.image,
+        genre: genreId ? { connect: { id: genreId } } : undefined,
+      },
+    });
   } catch (error) {
     return next(
       new HttpError(
@@ -135,8 +139,7 @@ exports.deleteAMovie = async (req, res, next) => {
   const movieId = req.params.mid;
 
   try {
-    const movie = await Movie.findByPk(movieId);
-    await movie.destroy();
+    await prisma.movie.delete({ where: { id: movieId } });
   } catch (error) {
     return new HttpError(
       "Something went wrong when getting movies to database",
@@ -149,7 +152,7 @@ exports.deleteAMovie = async (req, res, next) => {
 exports.createAGenre = async (req, res, next) => {
   const { name } = req.body;
   try {
-    const genre = await Genre.create({ name: name });
+    const genre = await prisma.genre.create({ data: { name } });
     res.json(genre).status(201);
   } catch (error) {
     new HttpError("Something went wrong when creating a genre", 500);
@@ -157,31 +160,30 @@ exports.createAGenre = async (req, res, next) => {
 };
 exports.editAGenre = async (req, res, next) => {
   const gid = req.params.gId;
-  console.log(gid);
-  console.log(req.body);
   const { name } = req.body;
-  let genre;
+  // let genre;
+  // try {
+  //   genre = await prisma.genre.findFirst({ where: { id: gid } });
+  // } catch (error) {
+  //   return new HttpError("Something went wrong when editing genre", 500);
+  // }
+  // if (!genre) {
+  //   return new HttpError("Genre not available", 500);
+  // }
+
   try {
-    genre = await Genre.findByPk(gid);
-  } catch (error) {
-    return new HttpError("Something went wrong when editing genre", 500);
-  }
-  if (!genre) {
-    return new HttpError("Genre not available", 500);
-  }
-  genre.name = name;
-  try {
-    await genre.save();
+    await prisma.genre.update({ where: { id: gid }, data: { name } });
   } catch (error) {
     return new HttpError("Something went wrong when editing genre", 500);
   }
   res.json({ message: "success" }).status(201);
 };
+
 exports.getCart = async (req, res, next) => {
   const user = req.user;
   let shoppingCart;
   try {
-    shoppingCart = await user.getShoppingCart();
+    shoppingCart = await prisma.shoppingCart({ where: {} });
   } catch (error) {
     console.log(error);
     return next(new HttpError("Could not fetch cart, please try again", 500));

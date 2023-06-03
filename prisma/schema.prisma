@@ -68,20 +68,20 @@ model Order {
 
 model ShoppingCart {
   id        String     @id @default(uuid())
-  owner     User[]
+  owner     User       @relation(fields: [ownerId], references: [id])
   cartItems CartItem[]
   createAt  DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  ownerId   String     @unique
 }
 
 model User {
-  id             String       @id @default(uuid())
-  image          String
-  name           String
-  username       String
-  password       String
-  Movie          Movie[]
-  shoppingCart   ShoppingCart @relation(fields: [shoppingCartId], references: [id])
-  shoppingCartId String
-  Order          Order[]
+  id           String        @id @default(uuid())
+  image        String
+  name         String
+  username     String
+  password     String
+  Movie        Movie[]
+  Order        Order[]
+  ShoppingCart ShoppingCart?
 }

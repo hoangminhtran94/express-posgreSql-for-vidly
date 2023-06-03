@@ -4,6 +4,7 @@ const { PrismaClient } = require("@prisma/client");
  */
 let prisma;
 
+// eslint-disable-next-line no-undef
 if (process.env.NODE_ENV === "production") {
   prisma = new PrismaClient();
   prisma.$connect();
@@ -15,4 +16,4 @@ if (process.env.NODE_ENV === "production") {
   prisma = global.__db;
 }
 
-export { prisma };
+module.exports = { prisma };

@@ -1,5 +1,5 @@
 const HttpError = require("../models/errors");
-const User = require("../models/user");
+const { prisma } = require("../utils/prisma");
 const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
@@ -18,13 +18,14 @@ module.exports = async (req, res, next) => {
   }
   let decodedToken;
   try {
+    // eslint-disable-next-line no-undef
     decodedToken = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
     return next(new HttpError("Authentication failed, please try agin", 500));
   }
   let user;
   try {
-    user = await User.findByPk(decodedToken.userId);
+    user = await prisma.user.findFirst({ where: { id: decodedToken.userId } });
   } catch (error) {
     return next(new HttpError("Authentication failed, please try agin", 500));
   }
