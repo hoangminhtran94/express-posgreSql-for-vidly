@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./database.db"
+}
+
+model Genre {
+  id    String  @id @default(uuid())
+  name  String  @unique
+  Movie Movie[]
+}
+
+model Movie {
+  id              String      @id @default(uuid())
+  title           String      @unique
+  numberInStock   Int
+  dailyRentalRate Float
+  description     String
+  image           String
+  genre           Genre       @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  genreId         String
+  owner           User        @relation(fields: [ownerId], references: [id])
+  ownerId         String
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  createAt        DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model CartItem {
+  movie          Movie        @relation(fields: [movieId], references: [id])
+  shoppingCart   ShoppingCart @relation(fields: [shoppingCartId], references: [id])
+  movieId        String
+  shoppingCartId String
+  quantity       Int
+
+  @@id([movieId, shoppingCartId])
+}
+
+model OrderItem {
+  quantity Int
+  Order    Order  @relation(fields: [orderId], references: [id])
+  orderId  String
+  Movie    Movie  @relation(fields: [movieId], references: [id])
+  movieId  String
+
+  @@id([orderId, movieId])
+}
+
+model OrderUser {
+  id String @id @default(uuid())
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  user       User        @relation(fields: [userId], references: [id])
+  userId     String
+  orderItems OrderItem[]
+  createAt   DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model ShoppingCart {
+  id        String     @id @default(uuid())
+  owner     User[]
+  cartItems CartItem[]
+  createAt  DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model User {
+  id             String       @id @default(uuid())
+  image          String
+  name           String
+  username       String
+  password       String
+  Movie          Movie[]
+  shoppingCart   ShoppingCart @relation(fields: [shoppingCartId], references: [id])
+  shoppingCartId String
+  Order          Order[]
+}
