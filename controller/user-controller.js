@@ -38,7 +38,7 @@ exports.login = async (req, res, next) => {
     return next(new HttpError("Could not login, please try again", 500));
   }
 
-  res.status(201).json({ user: existingUser[0], token });
+  res.status(201).json({ user: existingUser, token });
 };
 
 exports.register = async (req, res, next) => {
@@ -53,7 +53,7 @@ exports.register = async (req, res, next) => {
     return next(new HttpError("Something went wrong, please try again", 500));
   }
 
-  if (existingUser.length > 0) {
+  if (existingUser) {
     return next(
       new HttpError("userName already existed, please choose another userName"),
       403
@@ -71,7 +71,7 @@ exports.register = async (req, res, next) => {
   try {
     createdUser = await prisma.user.create({
       data: {
-        userName: userName,
+        username: userName,
         password: hashedPassword,
         image: req.file.path,
         name: name,
@@ -80,6 +80,7 @@ exports.register = async (req, res, next) => {
       include: { shoppingCart: true },
     });
   } catch (error) {
+    console.log(error);
     return next(new HttpError("could not create user, please try again", 500));
   }
   let token;
@@ -108,8 +109,12 @@ exports.getCustomerData = async (req, res, next) => {
     return next(new HttpError("Could fetch user data, please try again", 500));
   }
   if (user) {
-    res.json(user).status(201);
-  } else {
-    return next(new HttpError("Could fetch user data, please try again", 500));
+    return res.json(user).status(201);
   }
+  return next(new HttpError("Could fetch user data, please try again", 500));
+};
+
+exports.validateToken = async (req, res) => {
+  const user = req.user;
+  return res.json(user).status(201);
 };
