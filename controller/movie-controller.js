@@ -1,8 +1,4 @@
-const Movie = require("../models/movies");
-const Genre = require("../models/genre");
 const HttpError = require("../models/errors");
-const CartItems = require("../models/cart-item");
-const { response } = require("express");
 const fs = require("fs");
 const { prisma } = require("../utils/prisma");
 
@@ -20,7 +16,7 @@ exports.getMovies = async (req, res, next) => {
   }
 };
 
-exports.getGenres = async (req, res, next) => {
+exports.getGenres = async (req, res) => {
   try {
     const genres = await prisma.genre.findMany();
     res.json(genres).status(201);
@@ -183,42 +179,36 @@ exports.getCart = async (req, res, next) => {
   const user = req.user;
   let shoppingCart;
   try {
-    shoppingCart = await prisma.shoppingCart({ where: {} });
+    shoppingCart = await prisma.shoppingCart.findFirst({
+      where: { ownerId: user.id },
+      include: { cartItems: true },
+    });
   } catch (error) {
-    console.log(error);
     return next(new HttpError("Could not fetch cart, please try again", 500));
   }
   if (!shoppingCart) {
     try {
-      shoppingCart = await existingUser[0].createShoppingCart();
+      shoppingCart = await prisma.shoppingCart.create({
+        data: { owner: { connect: { id: user.id } } },
+        include: { cartItems: true },
+      });
     } catch (error) {
-      console.log(error);
       return next(new HttpError("Could not fetch cart, please try again", 500));
     }
   }
-  let cartMovies;
-  try {
-    cartMovies = await shoppingCart.getMovies();
-  } catch (error) {
-    console.log(error);
-    return next(new HttpError("Could not fetch cart, please try again", 500));
-  }
-  let cartItems = [];
-  if (cartMovies.length > 0) {
-    cartItems = cartMovies.map((movie) => movie.cartItem);
-  }
-  console.log(cartItems);
-  res.json(cartItems).status(201);
+
+  res.json(shoppingCart.cartItems).status(201);
 };
 
 exports.postCartItem = async (req, res, next) => {
   const user = req.user;
   const { movieId, quantity } = req.body;
   let shoppingCart;
-
   let existedMovie;
   try {
-    existedMovie = await user.getMovies({ where: { id: movieId } });
+    existedMovie = await prisma.movie.findFirst({
+      where: { id: movieId, ownerId: user.id },
+    });
   } catch (error) {
     return next(new HttpError("Could not post cart, please try again", 500));
   }
@@ -229,20 +219,23 @@ exports.postCartItem = async (req, res, next) => {
   }
 
   try {
-    shoppingCart = await user.getShoppingCart();
+    shoppingCart = await prisma.shoppingCart.findFirst({
+      where: { ownerId: user.id },
+      include: { cartItems: true },
+    });
   } catch (error) {
     return next(new HttpError("Could not post cart, please try again", 500));
   }
-  let movies;
-  //Check if there's any movies in the shopping cart
-  try {
-    movies = await shoppingCart.getMovies({ where: { id: movieId } });
-  } catch (error) {
-    return next(new HttpError("Could not post cart, please try again", 500));
-  }
+  // let movies;
+  // //Check if there's any movies in the shopping cart
+  // try {
+  //   movies = await shoppingCart.getMovies({ where: { id: movieId } });
+  // } catch (error) {
+  //   return next(new HttpError("Could not post cart, please try again", 500));
+  // }
   let currentMovie;
   try {
-    currentMovie = await Movie.findByPk(movieId);
+    currentMovie = await prisma.movie.findFirst({ where: { id: movieId } });
   } catch (error) {
     return next(new HttpError("Could not post cart, please try again", 500));
   }
@@ -251,72 +244,79 @@ exports.postCartItem = async (req, res, next) => {
   }
 
   let movieInCart;
-  if (movies.length > 0) {
+  if (shoppingCart.cartItems.length > 0) {
     //If movie is in the cart
-    movieInCart = movies[0];
+    movieInCart = shoppingCart.cartItems.find(
+      (item) => item.movieId === movieId
+    );
   }
 
   let newQuantity = quantity;
 
   if (movieInCart) {
     //new quantity = old quantity + 1
-    const oldquantity = movieInCart.cartItem.quantity;
+    const oldquantity = movieInCart.quantity;
     newQuantity = oldquantity + quantity;
     if (newQuantity === 0) {
-      await movieInCart.cartItem.destroy();
+      try {
+        await prisma.cartItem.delete({
+          where: { id: movieInCart.id },
+        });
+        movieInCart = null;
+      } catch {
+        return next(
+          new HttpError("Could not post cart, please try again", 500)
+        );
+      }
     } else {
-      await shoppingCart.addMovie(movieInCart, {
-        through: { quantity: newQuantity },
-      });
+      try {
+        await prisma.cartItem.update({
+          where: {
+            id: movieInCart.id,
+          },
+          data: {
+            quantity: newQuantity,
+          },
+        });
+      } catch (e) {
+        return next(
+          new HttpError("Could not post cart, please try again", 500)
+        );
+      }
     }
   }
 
   if (!movieInCart && newQuantity > 0) {
     try {
-      movieInCart = await Movie.findByPk(movieId);
-    } catch (error) {
-      return next(new HttpError("Could not post cart, please try again", 500));
-    }
-
-    try {
-      await shoppingCart.addMovie(movieInCart, {
-        through: { quantity: newQuantity },
+      movieInCart = await prisma.cartItem.create({
+        data: {
+          movie: { connect: { id: movieId } },
+          quantity: newQuantity,
+          shoppingCart: { connect: { id: shoppingCart.id } },
+        },
+        include: { movie: true, shoppingCart: true },
       });
     } catch (error) {
       return next(new HttpError("Could not post cart, please try again", 500));
     }
   }
   //Get the updated movie
-  let updatedMovie;
-  try {
-    updatedMovie = await shoppingCart.getMovies({ where: { id: movieId } });
-  } catch (error) {
-    return next(new HttpError("Could not post cart, please try again", 500));
-  }
-  if (!updatedMovie[0]) {
+
+  if (!movieInCart) {
     res.json({ message: "deleted" }).status(201);
   } else {
-    res.json(updatedMovie[0].cartItem).status(201);
+    res.json(movieInCart).status(201);
   }
 };
 
 exports.deleteCartItem = async (req, res, next) => {
   const cartId = req.params.cartId;
-  let cartItem;
   try {
-    cartItem = await CartItems.findByPk(cartId);
+    await prisma.cartItem.delete({ where: { id: cartId } });
   } catch (error) {
-    return next(new HttpError("Could not delete cart, please try again", 500));
-  }
-  if (!cartItem) {
     return next(new HttpError("Could not delete cart, please try again", 500));
   }
 
-  try {
-    await cartItem.destroy();
-  } catch (error) {
-    return next(new HttpError("Could not delete cart, please try again", 500));
-  }
   res.json({ message: "Successfully deleted cart item" });
 };
 
@@ -324,84 +324,92 @@ exports.checkout = async (req, res, next) => {
   const user = req.user;
   let shoppingCart;
   try {
-    shoppingCart = await user.getShoppingCart();
+    shoppingCart = await prisma.shoppingCart.findFirst({
+      where: { ownerId: user.id },
+    });
   } catch (error) {
     return next(new HttpError("Could not checkout, please try again", 500));
   }
-  let movies;
+  let cartItems;
   try {
-    movies = await shoppingCart.getMovies();
-  } catch (error) {
-    return next(new HttpError("Could not checkout, please try again", 500));
-  }
-  let order;
-  try {
-    order = await user.createOrder();
+    cartItems = await prisma.cartItem.findMany({
+      where: { shoppingCartId: shoppingCart.id },
+      include: { movie: { select: { ownerId: true } } },
+    });
   } catch (error) {
     return next(new HttpError("Could not checkout, please try again", 500));
   }
 
+  if (cartItems === 0) {
+    return next(new HttpError("There's no items", 500));
+  }
+
   try {
-    await order.addMovies(
-      movies.map((movie) => {
-        movie.orderItem = { quantity: movie.cartItem.quantity };
-        return movie;
-      })
-    );
+    await prisma.shoppingCart.update({
+      where: { id: shoppingCart.id },
+      data: { cartItems: { set: [] } },
+    });
+  } catch (error) {
+    return next(new HttpError("Could not checkout, please try again", 500));
+  }
+  try {
+    let promises = [];
+    cartItems.forEach((item) => {
+      promises.push(
+        prisma.order.create({
+          data: {
+            shoppingCart: { connect: { id: shoppingCart.id } },
+            user: { connect: { id: item.movie.ownerId } },
+            orderItems: {
+              create: {
+                quantity: item.quantity,
+                movie: { connect: { id: item.movieId } },
+              },
+            },
+          },
+        })
+      );
+    });
+    await Promise.all(promises);
   } catch (error) {
     return next(new HttpError("Could not checkout, please try again", 500));
   }
 
-  try {
-    await shoppingCart.setMovies(null);
-  } catch (error) {
-    return next(new HttpError("Could not checkout, please try again", 500));
-  }
   res.json({ message: "success" }).status(201);
 };
 
-exports.getOrders = async (req, res, next) => {};
+exports.getOrders = async (req, res, next) => {
+  const user = req.user;
+  let orders;
+  try {
+    await prisma.order.findMany({
+      where: { userId: user.id },
+      include: {
+        orderItems: { include: { movie: true } },
+        shoppingCart: { include: { owner: true } },
+      },
+    });
+  } catch (error) {
+    return next(new HttpError("Something went wrong, please try again", 500));
+  }
+
+  res.json(orders).status(201);
+};
 
 exports.getCustomer = async (req, res, next) => {
   const user = req.user;
-  console.log("getCustomer");
-  let movies;
+  let orders;
   try {
-    movies = await user.getMovies();
+    await prisma.order.findMany({
+      where: { userId: user.id },
+      select: {
+        orderItems: { select: { movie: true } },
+        shoppingCart: { select: { owner: true } },
+      },
+    });
   } catch (error) {
-    console.log(error);
-    return next(
-      new HttpError("Could not fetch customer, please try again", 500)
-    );
+    return next(new HttpError("Something went wrong, please try again", 500));
   }
 
-  let moviesorders;
-  try {
-    let ordersPromises = [];
-    movies.forEach((movie) => {
-      ordersPromises.push(movie.getOrders());
-    });
-    moviesorders = await Promise.all(ordersPromises);
-  } catch (error) {
-    return next(
-      new HttpError("Could not fetch customer, please try again", 500)
-    );
-  }
-  let returnObject = moviesorders.reduce((Array, movieOrders) => {
-    const mappedMovieOrders = movieOrders.map((order) => {
-      return {
-        id: order.id,
-        createdAt: order.id,
-        updatedAt: order.updatedAt,
-        customerId: order.userId,
-        quantity: order.orderItem.quantity,
-        movieId: order.orderItem.movieId,
-      };
-    });
-
-    return [...Array, ...mappedMovieOrders];
-  }, []);
-  console.log(returnObject);
-
-  res.json(returnObject).status(201);
+  res.json(orders).status(201);
 };

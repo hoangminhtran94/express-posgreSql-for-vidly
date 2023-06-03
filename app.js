@@ -5,38 +5,14 @@ const userRoute = require("./routes/user-route");
 const messageRoute = require("./routes/message-route");
 const app = express();
 const path = require("path");
-const db = require("./utils/database");
 const mongoose = require("mongoose");
 const Message = require("./models/mongoDb/message");
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server, { cors: { origin: ["http://localhost:3000"] } });
+const io = new Server(server, { cors: { origin: "*" } });
 const errorHandler = require("./middleware/error-handler");
 const { corsHandler } = require("./middleware/cors");
-
-//database model
-const Movie = require("./models/movies");
-const User = require("./models/user");
-const Genre = require("./models/genre");
-const ShoppingCart = require("./models/shopping-cart");
-const CartItem = require("./models/cart-item");
-const Order = require("./models/order");
-const OrderItem = require("./models/order-item");
-// const OrderUser = require("./models/order-user")
-// const formData = multer();
-Movie.belongsTo(Genre, { constraints: true, onDelete: "CASCADE" });
-Genre.hasMany(Movie);
-Movie.belongsTo(User, { constraints: true, onDelete: "CASCADE" });
-User.hasMany(Movie);
-ShoppingCart.belongsTo(User);
-User.hasOne(ShoppingCart);
-ShoppingCart.belongsToMany(Movie, { through: CartItem });
-Movie.belongsToMany(ShoppingCart, { through: CartItem });
-Order.belongsTo(User);
-User.hasMany(Order);
-Order.belongsToMany(Movie, { through: OrderItem });
-Movie.belongsToMany(Order, { through: OrderItem });
 
 // Socket.io
 io.on("connection", (socket) => {
@@ -109,13 +85,10 @@ app.use("/api/user", userRoute);
 
 app.use(errorHandler);
 
-db.sync()
-  .then((result) => {
-    return mongoose.connect(process.env.MONGODB_CONNECTION);
-  })
-  .then((result) => {
+mongoose
+  // eslint-disable-next-line no-undef
+  .connect(process.env.MONGODB_CONNECTION)
+  .then(() => {
     server.listen(5000);
   })
-  .catch((error) => {
-    console.log(error);
-  });
+  .catch((e) => console.log(e));
