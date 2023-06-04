@@ -5,10 +5,10 @@ exports.getYourOrders = async (req, res, next) => {
   const user = req.user;
   let orders;
   try {
-    await prisma.order.findMany({
+    orders = await prisma.order.findMany({
       where: { shoppingCart: { ownerId: user.id } },
       include: {
-        orderItems: { include: { movie: true } },
+        orderItems: { include: { movie: { include: { owner: true } } } },
       },
     });
   } catch (error) {

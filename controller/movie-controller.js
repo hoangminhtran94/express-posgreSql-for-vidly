@@ -173,16 +173,6 @@ exports.createAGenre = async (req, res, next) => {
 exports.editAGenre = async (req, res, next) => {
   const gid = req.params.gId;
   const { name } = req.body;
-  // let genre;
-  // try {
-  //   genre = await prisma.genre.findFirst({ where: { id: gid } });
-  // } catch (error) {
-  //   return new HttpError("Something went wrong when editing genre", 500);
-  // }
-  // if (!genre) {
-  //   return new HttpError("Genre not available", 500);
-  // }
-
   try {
     await prisma.genre.update({ where: { id: gid }, data: { name } });
   } catch (error) {
