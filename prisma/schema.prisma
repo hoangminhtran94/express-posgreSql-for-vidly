@@ -64,6 +64,8 @@ model Order {
   updatedAt      DateTime     @updatedAt
   shoppingCart   ShoppingCart @relation(fields: [shoppingCartId], references: [id])
   shoppingCartId String
+  orderStatus    OrderStatus  @relation(fields: [orderStatusId], references: [id])
+  orderStatusId  String       @default("pending")
 }
 
 model ShoppingCart {
@@ -85,4 +87,10 @@ model User {
   movies       Movie[]
   orders       Order[]
   shoppingCart ShoppingCart?
+}
+
+model OrderStatus {
+  id    String  @id @unique
+  name  String  @unique
+  Order Order[]
 }

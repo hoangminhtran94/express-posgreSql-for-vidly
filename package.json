@@ -4,7 +4,10 @@
   "main": "app.js",
   "scripts": {
     "test": "echo testing",
-    "start": "nodemon app.js"
+    "start": "node prisma/seed.js && nodemon app.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^4.15.0",
