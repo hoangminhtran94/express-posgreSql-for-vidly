@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   getMovies,
+  getUserMovies,
   addAMovie,
   getMoviesByCreator,
   getMoviesById,
@@ -18,9 +19,9 @@ const {
 const checkAuth = require("../middleware/auth");
 const { fileUpload } = require("../middleware/file-upload");
 const router = express.Router();
-
 router.get("/", getMovies);
 router.get("/genre", getGenres);
+router.use(checkAuth).get("/your-movies", getUserMovies);
 router.get("/:mid", getMoviesById);
 router.get("/user/:uid", getMoviesByCreator);
 

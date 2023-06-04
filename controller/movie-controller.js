@@ -16,6 +16,21 @@ exports.getMovies = async (req, res, next) => {
   }
 };
 
+exports.getUserMovies = async (req, res, next) => {
+  const user = req.user;
+  try {
+    const movies = await prisma.movie.findMany({ where: { ownerId: user.id } });
+    res.json(movies).status(201);
+  } catch (error) {
+    next(
+      new HttpError(
+        "Something went wrong when fetching movies from database",
+        500
+      )
+    );
+  }
+};
+
 exports.getGenres = async (req, res) => {
   try {
     const genres = await prisma.genre.findMany();
@@ -39,12 +54,13 @@ exports.addAMovie = async (req, res, next) => {
         numberInStock: +numberInStock,
         dailyRentalRate: +dailyRentalRate,
         description,
-        genreId,
+        genre: { connect: { id: genreId } },
         image: req.file.path,
         owner: { connect: { id: req.user.id } },
       },
     });
   } catch (error) {
+    console.log(error);
     return next(
       new HttpError("Something went wrong when adding movies to database", 500)
     );
@@ -212,7 +228,7 @@ exports.postCartItem = async (req, res, next) => {
   } catch (error) {
     return next(new HttpError("Could not post cart, please try again", 500));
   }
-  if (existedMovie.length > 0) {
+  if (existedMovie) {
     return next(
       new HttpError("Could buy your own product, please try again", 500)
     );
@@ -343,11 +359,12 @@ exports.checkout = async (req, res, next) => {
   if (cartItems === 0) {
     return next(new HttpError("There's no items", 500));
   }
+  const disconnects = cartItems.map((item) => ({ id: item.id }));
 
   try {
     await prisma.shoppingCart.update({
       where: { id: shoppingCart.id },
-      data: { cartItems: { set: [] } },
+      data: { cartItems: { delete: disconnects } },
     });
   } catch (error) {
     return next(new HttpError("Could not checkout, please try again", 500));
@@ -400,10 +417,10 @@ exports.getCustomer = async (req, res, next) => {
   const user = req.user;
   let orders;
   try {
-    await prisma.order.findMany({
+    orders = await prisma.order.findMany({
       where: { userId: user.id },
-      select: {
-        orderItems: { select: { movie: true } },
+      include: {
+        orderItems: { include: { movie: true } },
         shoppingCart: { select: { owner: true } },
       },
     });

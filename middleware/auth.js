@@ -14,6 +14,7 @@ module.exports = async (req, res, next) => {
       throw new HttpError("UnAuthorized, please login first", 403);
     }
   } catch (error) {
+    console.log(error);
     return next(new HttpError("Authentication failed, please try agin", 500));
   }
   let decodedToken;
