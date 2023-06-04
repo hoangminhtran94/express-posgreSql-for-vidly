@@ -394,39 +394,3 @@ exports.checkout = async (req, res, next) => {
 
   res.json({ message: "success" }).status(201);
 };
-
-exports.getOrders = async (req, res, next) => {
-  const user = req.user;
-  let orders;
-  try {
-    await prisma.order.findMany({
-      where: { userId: user.id },
-      include: {
-        orderItems: { include: { movie: true } },
-        shoppingCart: { include: { owner: true } },
-      },
-    });
-  } catch (error) {
-    return next(new HttpError("Something went wrong, please try again", 500));
-  }
-
-  res.json(orders).status(201);
-};
-
-exports.getCustomer = async (req, res, next) => {
-  const user = req.user;
-  let orders;
-  try {
-    orders = await prisma.order.findMany({
-      where: { userId: user.id },
-      include: {
-        orderItems: { include: { movie: true } },
-        shoppingCart: { select: { owner: true } },
-      },
-    });
-  } catch (error) {
-    return next(new HttpError("Something went wrong, please try again", 500));
-  }
-
-  res.json(orders).status(201);
-};

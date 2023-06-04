@@ -34,7 +34,7 @@ router.delete("/cart/:cartId", deleteCartItem);
 router.post("/genre", createAGenre);
 router.post("/genre/:gId", editAGenre);
 router.post("/checkout", checkout);
-router.get("/customer/order", getCustomer);
+
 router.post("/edit", fileUpload.single("image"), editAMovie);
 router.delete("/:mid", deleteAMovie);
 

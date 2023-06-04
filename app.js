@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const movieRoute = require("./routes/movies-route");
 const userRoute = require("./routes/user-route");
+const orderRoute = require("./routes/orders-route");
 const messageRoute = require("./routes/message-route");
 const app = express();
 const path = require("path");
@@ -82,6 +83,7 @@ app.use("/storage/images", express.static(path.join("storage", "images")));
 app.use("/api/messages", messageRoute);
 app.use("/api/movies", movieRoute);
 app.use("/api/user", userRoute);
+app.use("/api/orders", orderRoute);
 
 app.use(errorHandler);
 
