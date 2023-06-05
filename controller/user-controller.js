@@ -32,7 +32,7 @@ exports.login = async (req, res, next) => {
       { userId: existingUser.id, userName: existingUser.username },
       // eslint-disable-next-line no-undef
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "6h" }
     );
   } catch (error) {
     return next(new HttpError("Could not login, please try again", 500));
@@ -42,7 +42,8 @@ exports.login = async (req, res, next) => {
 };
 
 exports.register = async (req, res, next) => {
-  const { userName, name, password } = req.body;
+  const { userName, firstName, lastName, phoneNumber, address, password } =
+    req.body;
 
   let existingUser;
   try {
@@ -74,7 +75,10 @@ exports.register = async (req, res, next) => {
         username: userName,
         password: hashedPassword,
         image: req.file.path,
-        name: name,
+        firstName,
+        lastName,
+        phoneNumber,
+        address,
         shoppingCart: { create: {} },
       },
       include: { shoppingCart: true },

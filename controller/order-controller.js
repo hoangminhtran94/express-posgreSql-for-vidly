@@ -8,6 +8,7 @@ exports.getYourOrders = async (req, res, next) => {
     orders = await prisma.order.findMany({
       where: { shoppingCart: { ownerId: user.id } },
       include: {
+        orderStatus: true,
         orderItems: { include: { movie: { include: { owner: true } } } },
       },
     });
@@ -25,6 +26,7 @@ exports.getCustomer = async (req, res, next) => {
     orders = await prisma.order.findMany({
       where: { userId: user.id },
       include: {
+        orderStatus: true,
         orderItems: { include: { movie: true } },
         shoppingCart: { select: { owner: true } },
       },

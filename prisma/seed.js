@@ -3,44 +3,44 @@ const prisma = new PrismaClient();
 
 async function main() {
   const confirmed = await prisma.orderStatus.upsert({
-    where: { name: "confirmed" },
+    where: { id: "confirmed" },
     update: {},
     create: {
       id: "confirmed",
-      name: "confirmed",
+      name: "Confirmed",
     },
   });
 
   const declined = await prisma.orderStatus.upsert({
-    where: { name: "declined" },
+    where: { id: "declined" },
     update: {},
     create: {
       id: "declined",
-      name: "declined",
+      name: "Declined",
     },
   });
   const cancelled = await prisma.orderStatus.upsert({
-    where: { name: "cancelled" },
+    where: { id: "cancelled" },
     update: {},
     create: {
       id: "cancelled",
-      name: "cancelled",
+      name: "Cancelled",
     },
   });
   const finished = await prisma.orderStatus.upsert({
-    where: { name: "finished" },
+    where: { id: "finished" },
     update: {},
     create: {
       id: "finished",
-      name: "finished",
+      name: "Finished",
     },
   });
   const pending = await prisma.orderStatus.upsert({
-    where: { name: "pending" },
+    where: { id: "pending" },
     update: {},
     create: {
       id: "pending",
-      name: "pending",
+      name: "Pending",
     },
   });
 }

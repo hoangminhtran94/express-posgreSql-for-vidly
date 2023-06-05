@@ -31,12 +31,13 @@ model Movie {
   orderItems      OrderItem[]
   createAt        DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  likedByUsers    MovieLike[]
 }
 
 model CartItem {
   id             String       @id @default(uuid())
-  movie          Movie        @relation(fields: [movieId], references: [id])
-  shoppingCart   ShoppingCart @relation(fields: [shoppingCartId], references: [id])
+  movie          Movie        @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  shoppingCart   ShoppingCart @relation(fields: [shoppingCartId], references: [id], onDelete: Cascade)
   movieId        String
   shoppingCartId String
   quantity       Int
@@ -45,9 +46,9 @@ model CartItem {
 model OrderItem {
   id       String @id @default(uuid())
   quantity Int
-  order    Order  @relation(fields: [orderId], references: [id])
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId  String
-  movie    Movie  @relation(fields: [movieId], references: [id])
+  movie    Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
   movieId  String
 }
 
@@ -57,7 +58,7 @@ model OrderUser {
 
 model Order {
   id             String       @id @default(uuid())
-  user           User         @relation(fields: [userId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
   orderItems     OrderItem[]
   createAt       DateTime     @default(now())
@@ -70,7 +71,7 @@ model Order {
 
 model ShoppingCart {
   id        String     @id @default(uuid())
-  owner     User       @relation(fields: [ownerId], references: [id])
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cartItems CartItem[]
   createAt  DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -81,12 +82,25 @@ model ShoppingCart {
 model User {
   id           String        @id @default(uuid())
   image        String
-  name         String
-  username     String
+  firstName    String
+  lastName     String
+  phoneNumber  String
+  address      String
+  username     String        @unique
   password     String
   movies       Movie[]
   orders       Order[]
   shoppingCart ShoppingCart?
+  likedMovies  MovieLike[]
+}
+
+model MovieLike {
+  id      String  @id @default(uuid())
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  liked   Boolean @default(false)
+  userId  String
+  movieId String
 }
 
 model OrderStatus {
