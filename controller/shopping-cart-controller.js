@@ -164,37 +164,65 @@ exports.checkout = async (req, res, next) => {
   if (cartItems === 0) {
     return next(new HttpError("There's no items", 500));
   }
+
+  let updateMoviePromises = [];
+  cartItems.forEach((item) => {
+    updateMoviePromises.push(
+      prisma.$transaction(async (ctx) => {
+        const movie = await ctx.movie.update({
+          where: { id: item.movieId },
+          data: { numberInStock: { decrement: item.quantity } },
+        });
+        if (movie.numberInStock < 0) {
+          throw new HttpError("Number in Stock not enough", 403);
+        }
+      })
+    );
+  });
+
+  try {
+    await Promise.all(updateMoviePromises);
+  } catch (error) {
+    return next(error);
+  }
+
   const disconnects = cartItems.map((item) => ({ id: item.id }));
 
   try {
-    await prisma.shoppingCart.update({
-      where: { id: shoppingCart.id },
-      data: { cartItems: { delete: disconnects } },
-    });
-  } catch (error) {
-    return next(new HttpError("Could not checkout, please try again", 500));
-  }
-  try {
-    let promises = [];
-    cartItems.forEach((item) => {
-      promises.push(
-        prisma.order.create({
-          data: {
-            shoppingCart: { connect: { id: shoppingCart.id } },
-            user: { connect: { id: item.movie.ownerId } },
-            orderItems: {
-              create: {
-                quantity: item.quantity,
-                movie: { connect: { id: item.movieId } },
+    await prisma.$transaction(async (ctx) => {
+      try {
+        await ctx.shoppingCart.update({
+          where: { id: shoppingCart.id },
+          data: { cartItems: { delete: disconnects } },
+        });
+      } catch (error) {
+        return next(new HttpError("Could not checkout, please try again", 500));
+      }
+      try {
+        let promises = [];
+        cartItems.forEach((item) => {
+          promises.push(
+            ctx.order.create({
+              data: {
+                shoppingCart: { connect: { id: shoppingCart.id } },
+                user: { connect: { id: item.movie.ownerId } },
+                orderItems: {
+                  create: {
+                    quantity: item.quantity,
+                    movie: { connect: { id: item.movieId } },
+                  },
+                },
               },
-            },
-          },
-        })
-      );
+            })
+          );
+        });
+        await Promise.all(promises);
+      } catch (error) {
+        return next(new HttpError("Could not checkout, please try again", 500));
+      }
     });
-    await Promise.all(promises);
   } catch (error) {
-    return next(new HttpError("Could not checkout, please try again", 500));
+    return next(error);
   }
 
   res.json({ message: "success" }).status(201);

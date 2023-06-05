@@ -95,12 +95,13 @@ model User {
 }
 
 model MovieLike {
-  id      String  @id @default(uuid())
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
   liked   Boolean @default(false)
   userId  String
   movieId String
+
+  @@id([userId, movieId])
 }
 
 model OrderStatus {
