@@ -13,3 +13,5 @@ route.get("/", getGenres);
 route.use(checkAuth);
 route.post("/", createAGenre);
 route.post("/:gId", editAGenre);
+
+module.exports = route;

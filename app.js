@@ -4,6 +4,9 @@ const movieRoute = require("./routes/movies-route");
 const userRoute = require("./routes/user-route");
 const orderRoute = require("./routes/orders-route");
 const messageRoute = require("./routes/message-route");
+const genreRoute = require("./routes/genre-route");
+const shoppingCartRoute = require("./routes/shopping-cart-route");
+const likeRoute = require("./routes/shopping-cart-route");
 const app = express();
 const path = require("path");
 const mongoose = require("mongoose");
@@ -84,7 +87,9 @@ app.use("/api/messages", messageRoute);
 app.use("/api/movies", movieRoute);
 app.use("/api/user", userRoute);
 app.use("/api/orders", orderRoute);
-
+app.use("/api/genre", genreRoute);
+app.use("/api/shopping-cart", shoppingCartRoute);
+app.use("/api/like", likeRoute);
 app.use(errorHandler);
 
 mongoose

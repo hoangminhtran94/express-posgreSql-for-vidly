@@ -13,3 +13,5 @@ route.get("/", getCart);
 route.post("/", postCartItem);
 route.post("/checkout", checkout);
 route.delete("/:cartId", deleteCartItem);
+
+module.exports = route;
