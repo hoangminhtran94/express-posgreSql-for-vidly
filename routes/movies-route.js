@@ -19,7 +19,7 @@ router.get("/user/:uid", getMoviesByCreator);
 //Followring routes is protected
 router.use(checkAuth);
 router.post("/", fileUpload.single("image"), addAMovie);
-router.post("/edit", fileUpload.single("image"), editAMovie);
+router.post("/:mid", fileUpload.single("image"), editAMovie);
 router.delete("/:mid", deleteAMovie);
 
 module.exports = router;

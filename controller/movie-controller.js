@@ -31,7 +31,6 @@ exports.getUserMovies = async (req, res, next) => {
   }
 };
 
-
 exports.addAMovie = async (req, res, next) => {
   const { title, numberInStock, dailyRentalRate, description, genreId } =
     req.body;
@@ -80,8 +79,9 @@ exports.getMoviesById = async (req, res, next) => {
 };
 
 exports.editAMovie = async (req, res, next) => {
-  const { id, title, numberInStock, dailyRentalRate, description, genreId } =
+  const { title, numberInStock, dailyRentalRate, description, genreId } =
     req.body;
+  const id = req.params.mid;
   let movie;
   let file;
   if (req.file) {
@@ -125,6 +125,7 @@ exports.editAMovie = async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.log(error);
     return next(
       new HttpError(
         "Something went wrong when editeing movie, please try again",
@@ -149,4 +150,3 @@ exports.deleteAMovie = async (req, res, next) => {
   }
   res.json({ message: "success" }).status(201);
 };
-
