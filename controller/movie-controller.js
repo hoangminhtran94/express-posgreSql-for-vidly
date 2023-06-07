@@ -4,7 +4,7 @@ const { prisma } = require("../utils/prisma");
 
 exports.getMovies = async (req, res, next) => {
   try {
-    const movies = await prisma.movie.findMany();
+    const movies = await prisma.movie.findMany({ include: { owner: true } });
     res.json(movies).status(201);
   } catch (error) {
     next(

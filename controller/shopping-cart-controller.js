@@ -8,7 +8,7 @@ exports.getCart = async (req, res, next) => {
   try {
     shoppingCart = await prisma.shoppingCart.findFirst({
       where: { ownerId: user.id },
-      include: { cartItems: true },
+      include: { cartItems: { include: { movie: true } } },
     });
   } catch (error) {
     return next(new HttpError("Could not fetch cart, please try again", 500));
@@ -17,7 +17,7 @@ exports.getCart = async (req, res, next) => {
     try {
       shoppingCart = await prisma.shoppingCart.create({
         data: { owner: { connect: { id: user.id } } },
-        include: { cartItems: true },
+        include: { cartItems: { include: { movie: true } } },
       });
     } catch (error) {
       return next(new HttpError("Could not fetch cart, please try again", 500));
