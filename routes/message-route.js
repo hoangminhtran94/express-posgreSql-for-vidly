@@ -13,8 +13,11 @@ router.post("/", async (req, res, next) => {
   } catch (error) {
     return next(new HttpError("Something wrong happened", 404));
   }
+  if (!messages) {
+    return res.json([]).status(201);
+  }
   const collectionLength = messages.children.length;
-  res
+  return res
     .json(messages.children.slice(collectionLength - 10, collectionLength))
     .status(201);
 });

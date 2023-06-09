@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./database.db"
+  url      = "file:./database.db?socket_timeout=5000&connection_limit=2"
 }
 
 model Genre {
@@ -92,6 +92,7 @@ model User {
   orders       Order[]
   shoppingCart ShoppingCart?
   likedMovies  MovieLike[]
+  messageRooms MessageRoom[]
 }
 
 model MovieLike {
@@ -108,4 +109,10 @@ model OrderStatus {
   id    String  @id @unique
   name  String  @unique
   Order Order[]
+}
+
+model MessageRoom {
+  id     String  @id @unique @default(uuid())
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
 }

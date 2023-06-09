@@ -7,10 +7,11 @@ const childrenSchema = new Schema({
   receiverId: { type: String, required: true },
   message: { type: String, required: true },
   time: { type: Date, required: true, default: Date.now },
+  read: { type: Boolean, required: true, default: false },
 });
 
 const messageSchema = new Schema({
-  roomId: { type: String, required: true },
+  roomId: { type: String, required: true, unique: true },
   children: [childrenSchema],
 });
 module.exports = mongoose.model("Message", messageSchema);

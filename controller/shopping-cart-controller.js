@@ -165,23 +165,24 @@ exports.checkout = async (req, res, next) => {
     return next(new HttpError("There's no items", 500));
   }
 
-  let updateMoviePromises = [];
-  cartItems.forEach((item) => {
-    updateMoviePromises.push(
-      prisma.$transaction(async (ctx) => {
-        const movie = await ctx.movie.update({
-          where: { id: item.movieId },
-          data: { numberInStock: { decrement: item.quantity } },
-        });
+  try {
+    await prisma.$transaction(async (ctx) => {
+      for (let i = 0; i < cartItems.length; i++) {
+        let movie;
+        try {
+          movie = await ctx.movie.update({
+            where: { id: cartItems[i].movieId },
+            data: { numberInStock: { decrement: +cartItems[i].quantity } },
+          });
+        } catch (error) {
+          console.log(error);
+        }
+
         if (movie.numberInStock < 0) {
           throw new HttpError("Number in Stock not enough", 403);
         }
-      })
-    );
-  });
-
-  try {
-    await Promise.all(updateMoviePromises);
+      }
+    });
   } catch (error) {
     return next(error);
   }

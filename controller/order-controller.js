@@ -40,8 +40,8 @@ exports.getCustomer = async (req, res, next) => {
 
 exports.updateYourOrder = async (req, res, next) => {
   const user = req.user;
-  let orderId = req.params;
-  const newStatus = req.orderStatus;
+  let { orderId } = req.params;
+  const newStatus = req.body.orderStatus;
   const acceptedStatus = ["cancelled", "returned"];
 
   if (!acceptedStatus.includes(newStatus)) {
@@ -52,7 +52,7 @@ exports.updateYourOrder = async (req, res, next) => {
   try {
     order = await prisma.order.findFirst({
       where: { id: orderId },
-      include: { shoppingCart: { include: { owner: true } } },
+      include: { shoppingCart: { include: { owner: true } }, orderItems: true },
     });
   } catch (error) {
     return next(new HttpError("Something went wrong, please try again", 500));
@@ -86,6 +86,7 @@ exports.updateYourOrder = async (req, res, next) => {
       }
     });
   } catch (e) {
+    console.log(e);
     return next(new HttpError("Something went wrong, please try again", 500));
   }
   return res.json({ message: "Success" }).status(201);
