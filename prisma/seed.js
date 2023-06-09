@@ -43,6 +43,30 @@ async function main() {
       name: "Pending",
     },
   });
+  await prisma.orderStatus.upsert({
+    where: { id: "shipping" },
+    update: {},
+    create: {
+      id: "shipping",
+      name: "Shipping",
+    },
+  });
+  await prisma.orderStatus.upsert({
+    where: { id: "shipped" },
+    update: {},
+    create: {
+      id: "shipped",
+      name: "Shipped",
+    },
+  });
+  await prisma.orderStatus.upsert({
+    where: { id: "returned" },
+    update: {},
+    create: {
+      id: "returned",
+      name: "Returned",
+    },
+  });
 }
 main()
   .then(async () => {

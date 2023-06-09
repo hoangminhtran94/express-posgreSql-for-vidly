@@ -38,11 +38,11 @@ exports.getCustomer = async (req, res, next) => {
   res.json(orders).status(201);
 };
 
-exports.updateYourOrders = async (req, res, next) => {
+exports.updateYourOrder = async (req, res, next) => {
   const user = req.user;
   let orderId = req.params;
   const newStatus = req.orderStatus;
-  const acceptedStatus = ["cancelled"];
+  const acceptedStatus = ["cancelled", "returned"];
 
   if (!acceptedStatus.includes(newStatus)) {
     return next(new HttpError("Unauthorized", 403));
@@ -66,9 +66,24 @@ exports.updateYourOrders = async (req, res, next) => {
   }
 
   try {
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { orderStatus: { connect: { id: newStatus } } },
+    await prisma.$transaction(async (ctx) => {
+      await ctx.order.update({
+        where: { id: orderId },
+        data: { orderStatus: { connect: { id: newStatus } } },
+      });
+      if (newStatus === "cancelled") {
+        const orderItems = order.orderItems;
+        let promises = [];
+        orderItems.forEach((item) =>
+          promises.push(
+            ctx.movie.update({
+              where: { id: item.movieId },
+              data: { numberInStock: { increment: +item.quantity } },
+            })
+          )
+        );
+        await Promise.all(promises);
+      }
     });
   } catch (e) {
     return next(new HttpError("Something went wrong, please try again", 500));
@@ -76,11 +91,17 @@ exports.updateYourOrders = async (req, res, next) => {
   return res.json({ message: "Success" }).status(201);
 };
 
-exports.updateCustomerOrderStatus = async ({ req, res, next }) => {
+exports.updateCustomerOrderStatus = async (req, res, next) => {
   const user = req.user;
-  let orderId = req.params;
-  const newStatus = req.orderStatus;
-  const acceptedStatus = ["confirmed", "declined", "finished"];
+  let { orderId } = req.params;
+  const newStatus = req.body.orderStatus;
+  const acceptedStatus = [
+    "confirmed",
+    "declined",
+    "finished",
+    "shipping",
+    "shipped",
+  ];
 
   if (!acceptedStatus.includes(newStatus)) {
     return next(new HttpError("Unauthorized", 403));
@@ -90,7 +111,7 @@ exports.updateCustomerOrderStatus = async ({ req, res, next }) => {
   try {
     order = await prisma.order.findFirst({
       where: { id: orderId },
-      include: { shoppingCart: { include: { owner: true } } },
+      include: { shoppingCart: { include: { owner: true } }, orderItems: true },
     });
   } catch (error) {
     return next(new HttpError("Something went wrong, please try again", 500));
@@ -106,12 +127,28 @@ exports.updateCustomerOrderStatus = async ({ req, res, next }) => {
   }
 
   try {
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { orderStatus: { connect: { id: newStatus } } },
+    await prisma.$transaction(async (ctx) => {
+      await ctx.order.update({
+        where: { id: orderId },
+        data: { orderStatus: { connect: { id: newStatus } } },
+      });
+      const orderItems = order.orderItems;
+      if (newStatus === "declined") {
+        let promises = [];
+        orderItems.forEach((item) =>
+          promises.push(
+            ctx.movie.update({
+              where: { id: item.movieId },
+              data: { numberInStock: { increment: +item.quantity } },
+            })
+          )
+        );
+        await Promise.all(promises);
+      }
     });
-  } catch (e) {
+  } catch (error) {
     return next(new HttpError("Something went wrong, please try again", 500));
   }
+
   return res.json({ message: "Success" }).status(201);
 };
