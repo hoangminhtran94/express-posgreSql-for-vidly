@@ -80,19 +80,19 @@ model ShoppingCart {
 }
 
 model User {
-  id           String        @id @default(uuid())
+  id           String         @id @default(uuid())
   image        String
   firstName    String
   lastName     String
   phoneNumber  String
   address      String
-  username     String        @unique
+  username     String         @unique
   password     String
   movies       Movie[]
   orders       Order[]
   shoppingCart ShoppingCart?
   likedMovies  MovieLike[]
-  messageRooms MessageRoom[]
+  messageRoute MessageRoute[]
 }
 
 model MovieLike {
@@ -111,8 +111,16 @@ model OrderStatus {
   Order Order[]
 }
 
+model MessageRoute {
+  id            String      @id @default(uuid())
+  messageRoom   MessageRoom @relation(fields: [messageRoomId], references: [id])
+  messageRoomId String
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String
+}
+
 model MessageRoom {
-  id     String  @id @unique @default(uuid())
-  User   User?   @relation(fields: [userId], references: [id])
-  userId String?
+  id             String         @id @unique
+  messageRoute   MessageRoute[]
+  messageRouteId String
 }
