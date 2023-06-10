@@ -3,57 +3,62 @@ const fs = require("fs");
 const { prisma } = require("../utils/prisma");
 const Message = require("../models/mongoDb/message");
 
-exports.createChatRoom = async (req, res, next) => {
+exports.getMessages = async (req, res, next) => {
   const user = req.user;
-  const receiverId = req.body.receiverId;
+  const { receiverId } = req.params;
   if (!user || !receiverId) {
     return next(new HttpError("Invalid request", 500));
   }
 
-  const roomId = [user.id, receiverId].sort((a, b) => a - b).join("-");
-
   let messageRoom;
   try {
     messageRoom = await prisma.messageRoom.findFirst({
-      where: { id: roomId },
-      include: { messageRoute: { where: { userId: user.id } } },
+      where: {
+        messageRoute: {
+          some: { AND: [{ userId: user.id }, { userId: receiverId }] },
+        },
+      },
     });
   } catch (error) {
     return next(
       new HttpError("Something wrong happened, please try again", 500)
     );
   }
+  let messages;
   if (messageRoom) {
-    return res.json(messageRoom.messageRouteId).status(201);
+    try {
+      messages = await Message.findOne({ roomId: messageRoom.id });
+    } catch (error) {
+      return next(
+        new HttpError("Something wrong happened, please try again", 500)
+      );
+    }
+    if (messages.children.length > 0) {
+      messages.children.map((child) => ({ ...child, read: true }));
+
+      try {
+        messages = await messages.save();
+      } catch (error) {
+        return next(
+          new HttpError("Something wrong happened, please try again", 500)
+        );
+      }
+    }
   }
 
   if (!messageRoom) {
-    let renderRoute;
     try {
-      renderRoute = await prisma.$transaction(async (ctx) => {
-        const senderRoute = await ctx.messageRoute.create({
+      messageRoom = await prisma.$transaction(async (ctx) => {
+        return await ctx.messageRoom.create({
           data: {
-            user: { connect: { id: user.id } },
-            messageRoom: {
-              connectOrCreate: {
-                where: { id: roomId },
-                create: { id: roomId },
-              },
+            messageRoute: {
+              create: [
+                { user: { connect: { id: user.id } } },
+                { user: { connect: { id: receiverId } } },
+              ],
             },
           },
         });
-        await ctx.messageRoute.create({
-          data: {
-            user: { connect: { id: receiverId } },
-            messageRoom: {
-              connectOrCreate: {
-                where: { id: roomId },
-                create: { id: roomId },
-              },
-            },
-          },
-        });
-        return senderRoute;
       });
     } catch (error) {
       return next(
@@ -62,22 +67,87 @@ exports.createChatRoom = async (req, res, next) => {
     }
 
     try {
-      await Message.create({ roomId: roomId });
+      messages = await Message.create({
+        roomId: messageRoom.id,
+        children: [],
+      });
     } catch (error) {
       return next(
         new HttpError("Something wrong happened, please try again", 500)
       );
     }
-
-    return res.json(renderRoute.id).status(201);
+    return res.json(messages).status(201);
   }
 };
 
 exports.sendMessage = async (req, res, next) => {
   const user = req.user;
   const receiverId = req.body.receiverId;
+  const message = req.body.message;
 
-  let room = await prisma.messageRoute.findMany({
-    where: { OR: [{ userId: user.id }, { userId: receiverId }] },
+  let messageRoom;
+  try {
+    messageRoom = await prisma.messageRoom.findFirst({
+      where: {
+        messageRoute: {
+          some: { AND: [{ userId: user.id }, { userId: receiverId }] },
+        },
+      },
+    });
+  } catch (error) {
+    return next(
+      new HttpError("Something wrong happened, please try again", 500)
+    );
+  }
+  let messagRoomRef;
+  try {
+    messagRoomRef = await Message.findOne({ roomId: messageRoom.id });
+  } catch (error) {
+    return next(
+      new HttpError("Something wrong happened, please try again", 500)
+    );
+  }
+  if (!messagRoomRef) {
+    messagRoomRef = await Message.create({ roomId: messageRoom.id });
+  }
+
+  messagRoomRef.children.push({
+    senderId: user.id,
+    receiverId: receiverId,
+    message: message,
   });
+
+  try {
+    await messagRoomRef.save();
+  } catch (error) {
+    return next(
+      new HttpError("Something wrong happened, please try again", 500)
+    );
+  }
+  return res.json(messagRoomRef.children).status(201);
+};
+
+exports.getChatList = async (req, res, next) => {
+  const user = req.user;
+
+  let chatRooms;
+  try {
+    chatRooms = await prisma.messageRoom.findMany({
+      where: { messageRoute: { some: { userId: user.id } } },
+      include: { messageRoute: { include: { user: true } } },
+    });
+  } catch (error) {
+    return next(
+      new HttpError("Something wrong happened, please try again", 500)
+    );
+  }
+  if (!chatRooms || chatRooms?.length === 0) {
+    return res.json([]).status(201);
+  }
+
+  const chatlist = chatRooms.map((room) => {
+    return room.messageRoute.find((route) => route.userId !== user.id).user;
+  });
+
+  return res.json(chatlist).status(201);
 };

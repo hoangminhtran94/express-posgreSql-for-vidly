@@ -17,54 +17,71 @@ const { Server } = require("socket.io");
 const io = new Server(server, { cors: { origin: "*" } });
 const errorHandler = require("./middleware/error-handler");
 const { corsHandler } = require("./middleware/cors");
-
+const { prisma } = require("./utils/prisma");
+const jwt = require("jsonwebtoken");
 // Socket.io
-io.on("connection", (socket) => {
-  let roomName;
-  let sender;
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    next(new Error("UnAuthorized, please login first"));
+  }
+  let decodedToken;
+  try {
+    // eslint-disable-next-line no-undef
+    decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    next(new Error("Authentication failed, please try agin"));
+  }
+  let user;
+  try {
+    user = await prisma.user.findFirst({ where: { id: decodedToken.userId } });
+  } catch (error) {
+    next(new Error("Authentication failed, please try agin"));
+  }
+  if (user) {
+    socket.request.user = user;
+  } else {
+    next(new Error("Authentication failed, please try agin", 500));
+  }
+  next();
+}).on("connection", (socket) => {
+  let senderId = socket.request.user.id;
   let receiver;
-  socket.on("join-room", (senderId, receiverId) => {
-    sender = senderId;
-    receiver = receiverId;
-    roomName = [senderId, receiverId]
-      .sort((a, b) => (a < b ? 1 : -1))
-      .join("-");
-    socket.join(roomName);
+  socket.on("join-room", (roomId) => {
+    if (roomId) {
+      socket.request.roomId = roomId;
+      socket.join(roomId);
+    }
   });
 
   socket.on("send-message", (message) => {
-    if (roomName) {
-      Message.findOne({ roomId: roomName })
+    if (socket.request.roomId) {
+      Message.findOne({ roomId: socket.request.roomId })
         .then((result) => {
           if (!result) {
             const newMessage = new Message({
-              roomId: roomName,
+              roomId: socket.request.roomId,
               children: [
                 {
-                  senderId: sender,
+                  senderId: senderId,
                   receiverId: receiver,
                   message: message,
-                  time: new Date(Date.now()),
+                  read: false,
                 },
               ],
             });
             return newMessage.save();
           }
           result.children.push({
-            senderId: sender,
+            senderId: senderId,
             receiverId: receiver,
             message: message,
-            time: new Date(Date.now()),
+            read: false,
           });
           return result.save();
         })
         .then((res) => {
-          socket.to(roomName).emit("receive-message", {
-            senderId: sender,
-            receiverId: receiver,
-            message: message,
-            time: new Date(Date.now()),
-          });
+          socket.to(socket.request.roomId).emit("receive-message", res);
         })
         .catch((e) => {
           console.log(e);
@@ -73,6 +90,12 @@ io.on("connection", (socket) => {
   });
   socket.on("error", (error) => {
     if (error) {
+      socket.disconnect();
+    }
+  });
+  socket.on("connect_error", (err) => {
+    console.log(err);
+    if (err) {
       socket.disconnect();
     }
   });
