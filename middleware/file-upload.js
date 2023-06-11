@@ -22,6 +22,7 @@ exports.fileUpload = multer({
   storage: multerS3({
     s3,
     bucket: "vidly-storage",
+    acl: "public-read",
     metadata: function (req, file, cb) {
       cb(null, { fieldName: file.fieldname });
     },
