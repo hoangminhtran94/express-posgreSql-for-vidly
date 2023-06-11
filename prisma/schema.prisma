@@ -120,7 +120,6 @@ model MessageRoute {
 }
 
 model MessageRoom {
-  id             String         @id @default(uuid())
-  messageRoute   MessageRoute[]
-  messageRouteId String
+  id           String         @id @default(uuid())
+  messageRoute MessageRoute[]
 }

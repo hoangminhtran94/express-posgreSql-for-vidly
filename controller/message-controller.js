@@ -15,7 +15,7 @@ exports.getMessages = async (req, res, next) => {
     messageRoom = await prisma.messageRoom.findFirst({
       where: {
         messageRoute: {
-          some: { AND: [{ userId: user.id }, { userId: receiverId }] },
+          every: { OR: [{ userId: user.id }, { userId: receiverId }] },
         },
       },
     });
@@ -24,6 +24,7 @@ exports.getMessages = async (req, res, next) => {
       new HttpError("Something wrong happened, please try again", 500)
     );
   }
+
   let messages;
   if (messageRoom) {
     try {
@@ -61,6 +62,7 @@ exports.getMessages = async (req, res, next) => {
         });
       });
     } catch (error) {
+      console.log(error);
       return next(
         new HttpError("Something wrong happened, please try again", 500)
       );
@@ -76,8 +78,8 @@ exports.getMessages = async (req, res, next) => {
         new HttpError("Something wrong happened, please try again", 500)
       );
     }
-    return res.json(messages).status(201);
   }
+  return res.json(messages).status(201);
 };
 
 exports.sendMessage = async (req, res, next) => {
@@ -90,7 +92,7 @@ exports.sendMessage = async (req, res, next) => {
     messageRoom = await prisma.messageRoom.findFirst({
       where: {
         messageRoute: {
-          some: { AND: [{ userId: user.id }, { userId: receiverId }] },
+          some: { OR: [{ userId: user.id }, { userId: receiverId }] },
         },
       },
     });
@@ -146,7 +148,10 @@ exports.getChatList = async (req, res, next) => {
   }
 
   const chatlist = chatRooms.map((room) => {
-    return room.messageRoute.find((route) => route.userId !== user.id).user;
+    const receiver = room.messageRoute.find(
+      (route) => route.userId !== user.id
+    );
+    return { roomId: room.id, user: receiver.user };
   });
 
   return res.json(chatlist).status(201);

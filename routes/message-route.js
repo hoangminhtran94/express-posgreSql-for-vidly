@@ -7,8 +7,8 @@ const {
   getChatList,
 } = require("../controller/message-controller.js");
 router.use(checkAuth);
-router.get("/:receiverId", getMessages);
 router.get("/chat-list", getChatList);
+router.get("/:receiverId", getMessages);
 router.post("/send", sendMessage);
 
 module.exports = router;

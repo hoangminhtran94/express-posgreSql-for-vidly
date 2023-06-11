@@ -46,21 +46,22 @@ io.use(async (socket, next) => {
   next();
 }).on("connection", (socket) => {
   let senderId = socket.request.user.id;
-  let receiver;
+
   socket.on("join-room", (roomId) => {
+    console.log(roomId);
     if (roomId) {
-      socket.request.roomId = roomId;
       socket.join(roomId);
     }
   });
 
-  socket.on("send-message", (message) => {
-    if (socket.request.roomId) {
-      Message.findOne({ roomId: socket.request.roomId })
+  socket.on("send-message", (message, receiver, room) => {
+    console.log(socket.rooms);
+    if (room) {
+      Message.findOne({ roomId: room })
         .then((result) => {
           if (!result) {
             const newMessage = new Message({
-              roomId: socket.request.roomId,
+              roomId: room,
               children: [
                 {
                   senderId: senderId,
@@ -81,7 +82,8 @@ io.use(async (socket, next) => {
           return result.save();
         })
         .then((res) => {
-          socket.to(socket.request.roomId).emit("receive-message", res);
+          socket.emit("receive-message", res);
+          socket.to(room).emit("receive-message", res);
         })
         .catch((e) => {
           console.log(e);
@@ -89,6 +91,7 @@ io.use(async (socket, next) => {
     }
   });
   socket.on("error", (error) => {
+    console.log(error);
     if (error) {
       socket.disconnect();
     }
