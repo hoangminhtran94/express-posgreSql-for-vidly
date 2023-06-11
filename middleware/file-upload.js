@@ -1,6 +1,17 @@
 const multer = require("multer");
+const multerS3 = require("multer-s3");
 const { v4 } = require("uuid");
+const AWS = require("aws-sdk");
+AWS.config.update({
+  // eslint-disable-next-line no-undef
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  // eslint-disable-next-line no-undef
+  secretAccessKey: process.env.AWS_ACCESS_KEY_SECRET,
+  region: "us-east-1",
+});
+// eslint-disable-next-line no-undef
 
+const s3 = new AWS.S3();
 const MIME_TYPE_MAP = {
   "image/png": "png",
   "image/jpg": "jpg",
@@ -8,11 +19,13 @@ const MIME_TYPE_MAP = {
 };
 exports.fileUpload = multer({
   limits: 500000,
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, "storage/images");
+  storage: multerS3({
+    s3,
+    bucket: "vidly-storage",
+    metadata: function (req, file, cb) {
+      cb(null, { fieldName: file.fieldname });
     },
-    filename: (req, file, cb) => {
+    key: (req, file, cb) => {
       const extension = MIME_TYPE_MAP[file.mimetype];
       cb(null, v4() + "." + extension);
     },

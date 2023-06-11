@@ -74,7 +74,7 @@ exports.register = async (req, res, next) => {
       data: {
         username: userName,
         password: hashedPassword,
-        image: req.file.path,
+        image: req.file.location,
         firstName,
         lastName,
         phoneNumber,

@@ -43,7 +43,7 @@ exports.addAMovie = async (req, res, next) => {
         dailyRentalRate: +dailyRentalRate,
         description,
         genre: { connect: { id: genreId } },
-        image: req.file.path,
+        image: req.file.location,
         owner: { connect: { id: req.user.id } },
       },
     });
@@ -85,7 +85,7 @@ exports.editAMovie = async (req, res, next) => {
   let movie;
   let file;
   if (req.file) {
-    file = req.file.path;
+    file = req.file.location;
   }
 
   try {

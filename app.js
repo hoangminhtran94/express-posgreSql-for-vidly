@@ -1,4 +1,5 @@
 const express = require("express");
+const AWS = require("aws-sdk");
 const bodyParser = require("body-parser");
 const movieRoute = require("./routes/movies-route");
 const userRoute = require("./routes/user-route");
@@ -19,6 +20,7 @@ const errorHandler = require("./middleware/error-handler");
 const { corsHandler } = require("./middleware/cors");
 const { prisma } = require("./utils/prisma");
 const jwt = require("jsonwebtoken");
+
 // Socket.io
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
@@ -135,6 +137,7 @@ mongoose
   // eslint-disable-next-line no-undef
   .connect(process.env.MONGODB_CONNECTION)
   .then(() => {
-    server.listen(5000);
+    // eslint-disable-next-line no-undef
+    server.listen(process.env.PORT || 5000);
   })
   .catch((e) => console.log(e));
