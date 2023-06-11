@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./database.db?socket_timeout=5000&connection_limit=2"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Genre {
