@@ -147,12 +147,32 @@ exports.getChatList = async (req, res, next) => {
     return res.json([]).status(201);
   }
 
-  const chatlist = chatRooms.map((room) => {
-    const receiver = room.messageRoute.find(
-      (route) => route.userId !== user.id
-    );
-    return { roomId: room.id, user: receiver.user };
-  });
+  const chatlist = await Promise.all(
+    chatRooms.map(async (room) => {
+      let messageRoomData;
+      try {
+        messageRoomData = await Message.findOne({ roomId: room.id });
+      } catch (error) {
+        console.log(error);
+      }
+
+      const messages = messageRoomData.children;
+
+      const receiverRoute = room.messageRoute.find(
+        (route) => route.userId !== user.id
+      );
+
+      const unreadMessages = messages
+        .filter((message) => message.receiverId === user.id)
+        .filter((message) => message.read === false);
+
+      return {
+        roomId: room.id,
+        user: receiverRoute.user,
+        unreadCounter: unreadMessages.length,
+      };
+    })
+  );
 
   return res.json(chatlist).status(201);
 };

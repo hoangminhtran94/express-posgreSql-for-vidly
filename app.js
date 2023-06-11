@@ -23,39 +23,52 @@ const jwt = require("jsonwebtoken");
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) {
-    next(new Error("UnAuthorized, please login first"));
+    return next(new Error("UnAuthorized, please login first"));
   }
   let decodedToken;
   try {
     // eslint-disable-next-line no-undef
     decodedToken = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    next(new Error("Authentication failed, please try agin"));
+    return next(new Error("Authentication failed, please try agin"));
   }
   let user;
   try {
     user = await prisma.user.findFirst({ where: { id: decodedToken.userId } });
   } catch (error) {
-    next(new Error("Authentication failed, please try agin"));
+    return next(new Error("Authentication failed, please try agin"));
   }
   if (user) {
     socket.request.user = user;
   } else {
-    next(new Error("Authentication failed, please try agin", 500));
+    return next(new Error("Authentication failed, please try agin", 500));
   }
   next();
 }).on("connection", (socket) => {
   let senderId = socket.request.user.id;
 
   socket.on("join-room", (roomId) => {
-    console.log(roomId);
     if (roomId) {
       socket.join(roomId);
     }
   });
 
+  socket.on("read-message", async (room) => {
+    const message = await Message.findOne({ roomId: room });
+    if (message && message.children.length > 0) {
+      message.children = message.children.map((message) => {
+        if (message.receiverId === socket.request?.user.id) {
+          return { ...message, read: true };
+        }
+        return message;
+      });
+      await message.save();
+      socket.emit("message-read", "updating");
+      socket.to(room).emit("message-read", "updating");
+    }
+  });
+
   socket.on("send-message", (message, receiver, room) => {
-    console.log(socket.rooms);
     if (room) {
       Message.findOne({ roomId: room })
         .then((result) => {
