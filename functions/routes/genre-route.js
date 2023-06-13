@@ -6,12 +6,12 @@ const {
   editAGenre,
 } = require("../controller/genre-controller");
 
-const route = express.Router();
+const genreRoute = express.Router();
 
-route.get("/", getGenres);
+genreRoute.get("/", getGenres);
 
-route.use(checkAuth);
-route.post("/", createAGenre);
-route.post("/:gId", editAGenre);
+genreRoute.use(checkAuth);
+genreRoute.post("/", createAGenre);
+genreRoute.post("/:gId", editAGenre);
 
-module.exports = route;
+module.exports = genreRoute;

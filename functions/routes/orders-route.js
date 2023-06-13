@@ -6,12 +6,12 @@ const {
   updateYourOrder,
   updateCustomerOrderStatus,
 } = require("../controller/order-controller");
-const route = express.Router();
+const orderRoute = express.Router();
 
-route.use(checkAuth);
-route.get("/", getYourOrders);
-route.get("/customers", getCustomer);
-route.post("/:orderId/update-your-order", updateYourOrder);
-route.post("/:orderId/change-status", updateCustomerOrderStatus);
+orderRoute.use(checkAuth);
+orderRoute.get("/", getYourOrders);
+orderRoute.get("/customers", getCustomer);
+orderRoute.post("/:orderId/update-your-order", updateYourOrder);
+orderRoute.post("/:orderId/change-status", updateCustomerOrderStatus);
 
-module.exports = route;
+module.exports = orderRoute;

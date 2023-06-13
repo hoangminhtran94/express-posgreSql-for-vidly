@@ -6,12 +6,12 @@ const {
   deleteCartItem,
   checkout,
 } = require("../controller/shopping-cart-controller");
-const route = express.Router();
+const shoppingCartRoute = express.Router();
 
-route.use(checkAuth);
-route.get("/", getCart);
-route.post("/", postCartItem);
-route.post("/checkout", checkout);
-route.delete("/:cartId", deleteCartItem);
+shoppingCartRoute.use(checkAuth);
+shoppingCartRoute.get("/", getCart);
+shoppingCartRoute.post("/", postCartItem);
+shoppingCartRoute.post("/checkout", checkout);
+shoppingCartRoute.delete("/:cartId", deleteCartItem);
 
-module.exports = route;
+module.exports = shoppingCartRoute;
