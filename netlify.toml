@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm run build && npx prisma generate && node prisma/seed.js"
   functions = "functions"
 [dev]
   publish = "dist"
