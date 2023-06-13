@@ -5,7 +5,7 @@ const {
   getMessages,
   sendMessage,
   getChatList,
-} = require("../controller/message-controller.js");
+} = require("../../controller/message-controller.js");
 router.use(checkAuth);
 router.get("/chat-list", getChatList);
 router.get("/:receiverId", getMessages);

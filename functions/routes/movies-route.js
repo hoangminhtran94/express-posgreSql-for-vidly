@@ -7,7 +7,7 @@ const {
   getMoviesById,
   editAMovie,
   deleteAMovie,
-} = require("../controller/movie-controller");
+} = require("../../controller/movie-controller");
 const checkAuth = require("../middleware/auth");
 const { fileUpload } = require("../middleware/file-upload");
 const router = express.Router();

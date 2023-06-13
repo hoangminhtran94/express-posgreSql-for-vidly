@@ -1,4 +1,4 @@
-const HttpError = require("../models/errors");
+const HttpError = require("../../models/errors");
 const { prisma } = require("../utils/prisma");
 const jwt = require("jsonwebtoken");
 

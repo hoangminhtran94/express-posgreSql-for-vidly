@@ -5,7 +5,7 @@ const {
   postCartItem,
   deleteCartItem,
   checkout,
-} = require("../controller/shopping-cart-controller");
+} = require("../../controller/shopping-cart-controller");
 const route = express.Router();
 
 route.use(checkAuth);

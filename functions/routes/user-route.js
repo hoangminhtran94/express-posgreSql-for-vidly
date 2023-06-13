@@ -5,7 +5,7 @@ const {
   login,
   getCustomerData,
   validateToken,
-} = require("../controller/user-controller");
+} = require("../../controller/user-controller");
 const checkAuth = require("../middleware/auth");
 const userRoute = express.Router();
 

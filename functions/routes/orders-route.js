@@ -5,7 +5,7 @@ const {
   getCustomer,
   updateYourOrder,
   updateCustomerOrderStatus,
-} = require("../controller/order-controller");
+} = require("../../controller/order-controller");
 const route = express.Router();
 
 route.use(checkAuth);
