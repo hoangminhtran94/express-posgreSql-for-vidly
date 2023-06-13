@@ -17,7 +17,8 @@ const MIME_TYPE_MAP = {
   "image/jpg": "jpg",
   "image/jpeg": "jpeg",
 };
-exports.fileUpload = multer({
+
+const fileUpload = multer({
   limits: 500000,
   storage: multerS3({
     s3,
@@ -37,3 +38,5 @@ exports.fileUpload = multer({
     cb(error, isValid);
   },
 });
+
+module.exports = { fileUpload };

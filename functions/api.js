@@ -11,7 +11,7 @@ const likeRoute = require("./routes/shopping-cart-route");
 const app = express();
 const path = require("path");
 const mongoose = require("mongoose");
-const Message = require("../models/mongoDb/message");
+const Message = require("./models/mongoDb/message");
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
@@ -132,22 +132,7 @@ app.use("/api/shopping-cart", shoppingCartRoute);
 app.use("/api/like", likeRoute);
 app.use(errorHandler);
 
-const connectToMongoDB = async () => {
-  try {
-    // eslint-disable-next-line no-undef
-    mongoose.connect(process.env.MONGODB_CONNECTION);
-  } catch (error) {
-    console.log(error);
-  }
-  return server;
-};
+// eslint-disable-next-line no-undef
+mongoose.connect(process.env.MONGODB_CONNECTION);
 
-module.exports.handler = async () => {
-  let server;
-  try {
-    server = await connectToMongoDB();
-  } catch (error) {
-    console.log(error);
-  }
-  serverless(server);
-};
+module.exports.handler = serverless(server);

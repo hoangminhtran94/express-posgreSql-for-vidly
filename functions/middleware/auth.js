@@ -1,9 +1,9 @@
-const HttpError = require("../../models/errors");
+const HttpError = require("../models/errors");
 const { prisma } = require("../utils/prisma");
 const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
-module.exports = async (req, res, next) => {
+const auth = async (req, res, next) => {
   if (req.method === "OPTIONS") {
     return next();
   }
@@ -37,3 +37,4 @@ module.exports = async (req, res, next) => {
   }
   next();
 };
+module.exports = auth;
