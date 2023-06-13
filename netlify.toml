@@ -1,8 +1,6 @@
 [build]
-  command = "npm run build && npx prisma generate && node prisma/seed.js"
   functions = "functions"
-[dev]
-  publish = "dist"
+  command = "npx prisma generate && node prisma/seed.js"
 
 [[redirects]]
   force = true

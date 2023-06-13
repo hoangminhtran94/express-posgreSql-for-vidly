@@ -4,8 +4,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo testing",
-    "start": "./node_modules/.bin/netlify-lambda serve src",
-    "build": "./node_modules/.bin/netlify-lambda build src"
+    "start": "node prisma/seed.js && nodemon app.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
