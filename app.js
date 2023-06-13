@@ -1,5 +1,5 @@
 const express = require("express");
-const AWS = require("aws-sdk");
+const serverless = require("serverless-http");
 const bodyParser = require("body-parser");
 const movieRoute = require("./routes/movies-route");
 const userRoute = require("./routes/user-route");
@@ -123,7 +123,6 @@ io.use(async (socket, next) => {
 //Routes
 app.use(bodyParser.json());
 app.use(corsHandler);
-app.use("/storage/images", express.static(path.join("storage", "images")));
 app.use("/api/messages", messageRoute);
 app.use("/api/movies", movieRoute);
 app.use("/api/user", userRoute);
@@ -133,11 +132,22 @@ app.use("/api/shopping-cart", shoppingCartRoute);
 app.use("/api/like", likeRoute);
 app.use(errorHandler);
 
-mongoose
-  // eslint-disable-next-line no-undef
-  .connect(process.env.MONGODB_CONNECTION)
-  .then(() => {
+const connectToMongoDB = async () => {
+  try {
     // eslint-disable-next-line no-undef
-    server.listen(process.env.PORT || 5000);
-  })
-  .catch((e) => console.log(e));
+    mongoose.connect(process.env.MONGODB_CONNECTION);
+  } catch (error) {
+    console.log(error);
+  }
+  return server;
+};
+
+module.exports.handler = async () => {
+  let server;
+  try {
+    server = await connectToMongoDB();
+  } catch (error) {
+    console.log(error);
+  }
+  serverless(server);
+};
