@@ -4,9 +4,9 @@ const { v4 } = require("uuid");
 const AWS = require("aws-sdk");
 AWS.config.update({
   // eslint-disable-next-line no-undef
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  accessKeyId: process.env.AWS_ACCESS_KEY_VERY_ID,
   // eslint-disable-next-line no-undef
-  secretAccessKey: process.env.AWS_ACCESS_KEY_SECRET,
+  secretAccessKey: process.env.AWS_ACCESS_KEY_VERY_SECRET,
   region: "us-east-1",
 });
 // eslint-disable-next-line no-undef
