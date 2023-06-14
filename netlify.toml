@@ -1,6 +1,6 @@
 [build]
   functions = "functions"
-  command = "CI=false npx prisma generate && node functions/prisma/seed.js"
+  command = "CI=false npx prisma generate && node prisma/seed.js"
 
 [[redirects]]
   force = true
